@@ -1,0 +1,68 @@
+(function() {
+    if (window.__timeSpeedController) return;
+    window.__timeSpeedController = true;
+
+    let speed = 1;
+
+    // Ghi đè hàm đếm thời gian hệ thống performance.now
+    const origPerfNow = performance.now.bind(performance);
+    let lastRealTime = origPerfNow();
+    let virtualTime = lastRealTime;
+
+    performance.now = function() {
+        const now = origPerfNow();
+        virtualTime += (now - lastRealTime) * speed;
+        lastRealTime = now;
+        return virtualTime;
+    };
+
+    // Tua nhanh Video nếu trang web có chứa Video HTML5
+    function updateVideos() {
+        document.querySelectorAll('video').forEach(v => {
+            v.playbackRate = Math.min(speed, 16); // Trình duyệt giới hạn video thường max 16x
+        });
+    }
+
+    // Tạo UI nổi góc màn hình
+    const div = document.createElement('div');
+    div.style = `
+        position: fixed; bottom: 20px; right: 20px; z-index: 999999;
+        background: #0f172a; color: #fff; padding: 15px; border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: sans-serif;
+        border: 2px solid #f43f5e; width: 220px; text-align: center;
+    `;
+    div.innerHTML = `
+        <div style="font-weight:bold; margin-bottom:8px; font-size:14px; color:#f43f5e;">BỘ TUA THỜI GIAN</div>
+        <div style="font-size:20px; font-weight:bold; margin-bottom:8px;" id="speed-val-display">1x</div>
+        <input type="range" id="speed-range-bar" min="1" max="500" value="1" style="width:100%; cursor:pointer;">
+        <div style="display:flex; justify-content:space-between; margin-top:8px;">
+            <button class="sp-btn" data-v="1">1x</button>
+            <button class="sp-btn" data-v="10">10x</button>
+            <button class="sp-btn" data-v="100">100x</button>
+            <button class="sp-btn" data-v="500">500x</button>
+        </div>
+    `;
+    document.body.appendChild(div);
+
+    // CSS cho button trong Widget
+    const style = document.createElement('style');
+    style.innerHTML = `.sp-btn { background:#334155; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-weight:bold; } .sp-btn:hover { background:#f43f5e; }`;
+    document.head.appendChild(style);
+
+    const slider = div.querySelector('#speed-range-bar');
+    const display = div.querySelector('#speed-val-display');
+
+    function setGlobalSpeed(val) {
+        speed = parseFloat(val);
+        display.innerText = speed + 'x';
+        slider.value = speed;
+        updateVideos();
+    }
+
+    slider.addEventListener('input', (e) => setGlobalSpeed(e.target.value));
+    div.querySelectorAll('.sp-btn').forEach(btn => {
+        btn.addEventListener('click', () => setGlobalSpeed(btn.getAttribute('data-v')));
+    });
+
+    console.log("Đã kích hoạt bộ tua thời gian 1x - 500x!");
+})();
